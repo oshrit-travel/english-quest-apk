@@ -4,6 +4,7 @@ const manifest = 'android/app/src/main/AndroidManifest.xml';
 let m = fs.readFileSync(manifest, 'utf8');
 // allow rotation in both directions, keep the activity alive on config changes, resize with the keyboard
 if (!m.includes('screenOrientation')) m = m.replace('<activity', '<activity android:screenOrientation="fullUser"');
+if (!m.includes('TTS_SERVICE')) m = m.replace('</manifest>', '  <queries><intent><action android:name="android.intent.action.TTS_SERVICE" /></intent></queries>\n</manifest>');
 fs.writeFileSync(manifest, m);
 
 // hide the system bars + keep the screen on during play (immersive full-screen)

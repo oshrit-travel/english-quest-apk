@@ -80,8 +80,7 @@ export default function App() {
     <div className="fixed inset-0 overflow-hidden bg-[#17323d]" dir="rtl">
       <Suspense fallback={<div className="grid h-full place-items-center text-2xl text-white">🏝️ טוען…</div>}><GameCanvas /></Suspense>
       {top.name === 'world' && <Hud />}
-      <AnimatePresence mode="wait">
-        <motion.div key={top.name} className="contents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div key={top.name} className="contents">
           {top.name === 'menu' && <Menu />}
           {top.name === 'setup' && <Setup />}
           {top.name === 'assessIntro' && <AssessIntro />}
@@ -98,8 +97,7 @@ export default function App() {
           {top.name === 'parent' && <Parent />}
           {top.name === 'activity' && <Activity />}
           {top.name === 'results' && <Results s={arg} />}
-        </motion.div>
-      </AnimatePresence>
+      </div>
       <AnimatePresence>{dialog && <Dialog key={dialog.npc} id={dialog.npc} />}</AnimatePresence>
       <Toasts /><LevelUp />
     </div>

@@ -16,6 +16,7 @@
     "@capacitor/app": "^6.0.1",
     "@capacitor/core": "^6.1.2",
     "@capacitor/status-bar": "^6.0.1",
+    "@capacitor-community/text-to-speech": "^5.0.0",
     "@fontsource/rubik": "^5.1.0",
     "@react-three/drei": "^9.108.0",
     "@react-three/fiber": "^8.17.0",

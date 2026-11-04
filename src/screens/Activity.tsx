@@ -165,20 +165,19 @@ export default function Activity() {
           {o.boss && (
             <div className="glass mb-3 flex items-center gap-3 p-2"><motion.span className="text-5xl" animate={{ rotate: [0, -6, 6, 0] }} transition={{ repeat: Infinity, duration: 2.4 }}>{o.bossEmoji || '👹'}</motion.span><div className="flex-1"><div className="mb-1 text-xs font-bold">{o.title}</div><Bar pct={bossHp} color="from-[#ff9a7d] to-[#e5604a]" h={12} /></div></div>
           )}
-          <AnimatePresence mode="wait">
-            <motion.div key={R.i + ':' + R.total + ':' + q.kind} initial={{ opacity: 0, x: -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="panel p-4">
+          {/* no AnimatePresence here: a stuck exit animation left the next question invisible */}
+            <motion.div key={R.i + ':' + q.kind} initial={{ opacity: 0, x: -28 }} animate={{ opacity: 1, x: 0 }} className="panel p-4">
               {q.kind === 'memory' ? <Memory q={q} /> : q.kind === 'search' ? <Search q={q} noHint={noHint} /> : q.kind === 'write' ? <Write q={q} dis={dis} exam={!!o.exam} /> : (
                 <>
                   <Passage q={q} revealed={dis} />
                   <div className="text-center text-xl font-bold leading-relaxed" {...H(q.prompt)} />
                   {q.speak && <SpeakRow q={q} />}
                   {q.kind === 'mcq' && <Mcq q={q} dis={dis} />}
-                  {q.kind === 'build' && <Build key={R.i + ':' + R.total} q={q} dis={dis} shakeKey={q.shake || 0} />}
-                  {q.kind === 'type' && <TypeIn key={R.i + ':' + R.total} q={q} dis={dis} />}
+                  {q.kind === 'build' && <Build key={R.i + ':' + q.kind} q={q} dis={dis} shakeKey={q.shake || 0} />}
+                  {q.kind === 'type' && <TypeIn key={R.i + ':' + q.kind} q={q} dis={dis} />}
                 </>
               )}
             </motion.div>
-          </AnimatePresence>
           {!noHint && hints && !dis && q.kind !== 'memory' && q.kind !== 'search' && q.kind !== 'write' && <div className="mt-3 text-center"><button className="btn btn-ghost btn-sm" onClick={() => showHint(true)}>💡 רמז</button></div>}
           {q.hintHtml && !dis && <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="glass mt-3 flex items-start gap-2 p-3"><span className="text-2xl">{MASCOT}</span><div className="text-[15px]" {...H(q.hintHtml)} /></motion.div>}
         </div>

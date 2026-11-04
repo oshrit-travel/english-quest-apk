@@ -60,9 +60,14 @@ export function dueIds(){const now=Date.now();return Object.keys(S.mastery).filt
 export function learnedCount(){return Object.keys(S.mastery).filter(k=>k.startsWith('v:')&&S.mastery[k].step>=1).length}
 
 /* ---------- speech ---------- */
-export const TTS={ok:typeof window!=='undefined'&&'speechSynthesis' in window,voice:null,has:false,init(){if(!this.ok)return;const f=()=>{const v=speechSynthesis.getVoices();const en=v.filter(x=>/^en[-_]/i.test(x.lang));this.voice=en.find(x=>/en[-_]US/i.test(x.lang)&&/google|samantha|natural|aria|jenny/i.test(x.name))||en.find(x=>/en[-_]US/i.test(x.lang))||en[0]||null;this.has=!!this.voice};f();speechSynthesis.onvoiceschanged=f}};
-if(TTS.ok)TTS.init();
-export function say(text,slow){if(S.set.mute||!TTS.ok||!text)return false;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(String(text).replace(/___/g,'blank'));u.lang='en-US';if(TTS.voice)u.voice=TTS.voice;u.rate=slow?Math.max(.5,S.set.rate-.3):S.set.rate;u.volume=S.set.vol;speechSynthesis.speak(u);return true}catch(e){return false}}
+const NATIVE=typeof window!=='undefined'&&!!(window as any).Capacitor?.isNativePlatform?.();
+let _ntts:any=null;
+if(NATIVE)import('@capacitor-community/text-to-speech').then(m=>{_ntts=m.TextToSpeech}).catch(()=>{});
+export const TTS:any={ok:NATIVE||(typeof window!=='undefined'&&'speechSynthesis' in window),voice:null,has:NATIVE,native:NATIVE,init(){if(NATIVE||!this.ok)return;const f=()=>{const v=speechSynthesis.getVoices();const en=v.filter(x=>/^en[-_]/i.test(x.lang));this.voice=en.find(x=>/en[-_]US/i.test(x.lang)&&/google|samantha|natural|aria|jenny/i.test(x.name))||en.find(x=>/en[-_]US/i.test(x.lang))||en[0]||null;this.has=!!this.voice};f();speechSynthesis.onvoiceschanged=f}};
+if(TTS.ok&&!NATIVE)TTS.init();
+export function say(text,slow){if(S.set.mute||!TTS.ok||!text)return false;const t=String(text).replace(/___/g,'blank');
+  if(NATIVE){if(!_ntts)return false;try{_ntts.stop().catch(()=>{}).finally(()=>{_ntts.speak({text:t,lang:'en-US',rate:slow?Math.max(.5,S.set.rate-.3):S.set.rate,pitch:1,volume:S.set.vol,category:'ambient'}).catch(()=>{})})}catch(e){return false}return true}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(TTS.voice)u.voice=TTS.voice;u.rate=slow?Math.max(.5,S.set.rate-.3):S.set.rate;u.volume=S.set.vol;speechSynthesis.speak(u);return true}catch(e){return false}}
 export const SR=typeof window!=='undefined'?(window.SpeechRecognition||window.webkitSpeechRecognition):undefined;
 let _ac;
 export function beep(ok){if(S.set.mute)return;try{_ac=_ac||new(window.AudioContext||window.webkitAudioContext)();const o=_ac.createOscillator(),g=_ac.createGain();o.connect(g);g.connect(_ac.destination);o.type='sine';const t=_ac.currentTime;o.frequency.setValueAtTime(ok?660:200,t);if(ok)o.frequency.setValueAtTime(880,t+.09);g.gain.setValueAtTime(.12*S.set.vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.25);o.start(t);o.stop(t+.26)}catch(e){}}
@@ -296,4 +301,4 @@ export function readiness(at){
 
 /* happy chime for rewards */
 export function chime(){if(S.set.mute)return;try{_ac=_ac||new(window.AudioContext||window.webkitAudioContext)();const t0=_ac.currentTime;[523,659,784,1047].forEach((f,i)=>{const o=_ac.createOscillator(),g=_ac.createGain();o.connect(g);g.connect(_ac.destination);o.type='triangle';const t=t0+i*.08;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.12*S.set.vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.3);o.start(t);o.stop(t+.32)})}catch(e){}}
-export function stopSpeech(){try{speechSynthesis.cancel()}catch(e){}}
+export function stopSpeech(){try{if(NATIVE){_ntts&&_ntts.stop().catch(()=>{})}else speechSynthesis.cancel()}catch(e){}}
