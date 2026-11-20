@@ -9,14 +9,14 @@ export default function MapScreen() {
   return (
     <Page title="🗺️ מפת האי">
       {REGIONS.map((r) => {
-        const open = regionOpen(r.id), ms = MISSIONS.filter((m) => m.r === r.id), done = ms.filter((m) => mDone(m.id)).length, g = gateInfo();
+        const open = regionOpen(r.id), ms = MISSIONS.filter((m) => m.r === r.id), done = ms.filter((m) => mDone(m.id)).length, g = gateInfo(r.id);
         return (
-          <Card key={r.id} className={open || !(r as any).lock ? '' : 'opacity-60'}>
+          <Card key={r.id} className={open ? '' : 'opacity-60'}>
             <div className="flex items-center gap-3">
               <span className="text-4xl">{r.emoji}</span>
               <div className="flex-1"><h3 className="text-lg font-extrabold">{r.he} <span className="en text-sm font-medium text-[#8a6a45]">{r.en}</span></h3>
-                {ms.length ? <Bar pct={(done / ms.length) * 100} h={9} /> : <div className="text-sm text-[#8a6a45]">יפתח בגרסאות הבאות</div>}</div>
-              <span className="chip">{ms.length ? `${done}/${ms.length}` : '🔒 בקרוב'}</span>
+                <Bar pct={(done / ms.length) * 100} h={9} /></div>
+              <span className="chip">{`${done}/${ms.length}`}</span>
             </div>
             {open && ms.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -27,7 +27,7 @@ export default function MapScreen() {
                   </button>); })}
               </div>
             )}
-            {!open && ms.length > 0 && <div className="mt-2 text-sm text-[#8a6a45]">🔒 {g.boss ? `נדרשת שליטה במילים (${g.learned}/${g.need})` : 'עברו את קרב שומר השער כדי לפתוח'}</div>}
+            {!open && ms.length > 0 && <div className="mt-2 text-sm text-[#8a6a45]">🔒 {g.boss ? `נדרשת שליטה במילים (${g.learned}/${g.need})` : 'עברו את קרב הבוס של האזור הקודם כדי לפתוח'}</div>}
           </Card>
         );
       })}

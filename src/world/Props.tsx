@@ -68,8 +68,8 @@ export function Ground() {
   );
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[5, -1.4, 0]}><planeGeometry args={[400, 400]} /><meshStandardMaterial color="#2f9cc4" roughness={0.35} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[5, -1.32, 0]}><planeGeometry args={[400, 400]} /><meshStandardMaterial ref={seaMat} map={sea} color="#6fd3e8" transparent opacity={0.55} depthWrite={false} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[110, -1.4, 0]}><planeGeometry args={[700, 400]} /><meshStandardMaterial color="#2f9cc4" roughness={0.35} /></mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[110, -1.32, 0]}><planeGeometry args={[700, 400]} /><meshStandardMaterial ref={seaMat} map={sea} color="#6fd3e8" transparent opacity={0.55} depthWrite={false} /></mesh>
       <RoundedBox args={[92, 0.9, 58]} radius={0.45} smoothness={3} position={[5, -1.0, 0]} receiveShadow><meshStandardMaterial color="#f2dfa6" /></RoundedBox>
       <RoundedBox args={[84, 1.9, 50]} radius={0.5} smoothness={3} position={[5, -0.95, 0]} receiveShadow><meshStandardMaterial color="#9b7345" /></RoundedBox>
       <RoundedBox args={[84.4, 0.35, 50.4]} radius={0.17} smoothness={3} position={[5, -0.17, 0]} receiveShadow><meshStandardMaterial color="#6fbd5a" /></RoundedBox>

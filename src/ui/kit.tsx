@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NPCS, SHOP } from '../data/content.ts';
+import { NPCS, SHOP, PORTRAITS } from '../data/content.ts';
 import { levelInfo } from '../engine/engine.ts';
 import { useGame } from '../engine/useGame.ts';
 import { useUI } from '../engine/ui.ts';
@@ -12,7 +12,7 @@ export function Portrait({ id, size = 64 }: { id?: string; size?: number }) {
   const n = id ? (NPCS as any)[id] : null;
   return (
     <div className="shrink-0 rounded-full grid place-items-center border-4 border-[#fff3cf] shadow-chunky" style={{ width: size, height: size, background: n ? n.c : '#2fa6b8', fontSize: size * 0.58 }}>
-      {id ? PORTRAIT[id] : MASCOT}
+      {id ? PORTRAIT[id] || (PORTRAITS as any)[id] || '🙂' : MASCOT}
     </div>
   );
 }

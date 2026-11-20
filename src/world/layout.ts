@@ -1,6 +1,7 @@
 // Data-driven world layout. The renderer AND the collision system both read from here,
 // so what you see is exactly what blocks you.
 import { NPCS } from '../data/content.ts';
+import { regionOpen } from '../engine/engine.ts';
 
 export const BOUND = { x1: -35, x2: 45, z1: -22.5, z2: 22.5 };
 
@@ -36,7 +37,47 @@ export const FIELD = { x1: 34, x2: 44, z1: -8.5, z2: 4.5 };
 export const GARDEN = { x1: 7, x2: 13, z1: -21, z2: -13.5 };
 export const GATE = { x: 2, z: 0, half: 2.6 };
 
-export type Collider = { t: 'c'; x: number; z: number; r: number } | { t: 'b'; x1: number; x2: number; z1: number; z2: number; gate?: boolean };
+
+/* ---------- outer islands: regions 3-6, connected by bridges to the east ---------- */
+export type Island = { r: number; cx: number; x1: number; x2: number; z1: number; z2: number; grass: string; edge: string };
+export const ISLANDS: Island[] = [
+  { r: 3, cx: 72, x1: 55, x2: 89, z1: -16, z2: 16, grass: '#9fdc7a', edge: '#6fbd5a' },
+  { r: 4, cx: 116, x1: 99, x2: 133, z1: -16, z2: 16, grass: '#5fae62', edge: '#3f8f4f' },
+  { r: 5, cx: 160, x1: 143, x2: 177, z1: -16, z2: 16, grass: '#ecd9a0', edge: '#d9c079' },
+  { r: 6, cx: 204, x1: 187, x2: 221, z1: -16, z2: 16, grass: '#b4df78', edge: '#8fc45a' },
+];
+export const BRIDGES = [{ r: 3, x1: 45, x2: 55 }, { r: 4, x1: 89, x2: 99 }, { r: 5, x1: 133, x2: 143 }, { r: 6, x1: 177, x2: 187 }];
+export const BRIDGE_HALF = 1.9;
+export const PIER = { x1: 155, x2: 165, z1: 15, z2: 27 };
+export const LAND_MAX_X = 222;
+export function walkable(x: number, z: number) {
+  if (x > BOUND.x1 && x < BOUND.x2 && z > BOUND.z1 && z < BOUND.z2) return true;
+  for (const i of ISLANDS) if (x > i.x1 + 0.4 && x < i.x2 - 0.4 && z > i.z1 + 0.4 && z < i.z2 - 0.4) return true;
+  for (const b of BRIDGES) if (x > b.x1 - 0.7 && x < b.x2 + 0.7 && Math.abs(z) < BRIDGE_HALF) return true;
+  if (x > PIER.x1 && x < PIER.x2 && z > PIER.z1 - 0.5 && z < PIER.z2) return true;
+  return false;
+}
+export const ISLAND_HOUSES: House[] = [
+  { id: 'i-school', x: 72, z: -10, w: 11, d: 6, h: 4.4, wall: '#f8ecc8', roof: '#3f7fc2', kind: 'school' },
+  { id: 'i-lib', x: 62, z: -9.5, w: 6, d: 5, h: 3.4, wall: '#e5f2cf', roof: '#7d4fc4', kind: 'house' },
+  { id: 'i-caf', x: 83, z: -9.5, w: 6, d: 5, h: 3.2, wall: '#ffe6a6', roof: '#d83a56', kind: 'house' },
+  { id: 'i-art', x: 83, z: 11, w: 6, d: 5, h: 3.2, wall: '#fbe0e8', roof: '#d9603b', kind: 'house' },
+  { id: 'i-cabin', x: 106, z: -9.5, w: 5, d: 4, h: 3, wall: '#b98a5a', roof: '#3f7a4a', kind: 'house' },
+  { id: 'i-ware', x: 150, z: -11.5, w: 7, d: 5, h: 3.4, wall: '#cfd8dc', roof: '#546e7a', kind: 'house' },
+  { id: 'i-hut', x: 150, z: 11, w: 5, d: 4, h: 3, wall: '#f3e0c2', roof: '#2f7fa8', kind: 'house' },
+];
+export const SCHOOL_FIELD = { x1: 62.5, x2: 76, z1: 5.5, z2: 13.5 };
+export const CLOCK_TOWER = { x: 67, z: 3.2 };
+export const STONES = { x: 125, z: -8, r: 3.3, n: 8 };
+export const CAMPFIRE = { x: 112.4, z: 6.4 };
+export const BIG_TREE = { x: 122, z: -6.6 };
+export const LIGHTHOUSE = { x: 172.5, z: -11 };
+export const CRATES: [number, number][] = [[146.5, 5], [147.8, 6.3], [171.5, -3.5], [172.8, -2.4], [156, -14], [165, 12.6]];
+export const BOATS: { x: number; z: number; rot: number; c: string }[] = [{ x: 152, z: 21, rot: Math.PI / 2, c: '#e5604a' }, { x: 168, z: 22, rot: Math.PI / 2, c: '#3b82f6' }, { x: 152, z: 14.2, rot: 0.2, c: '#f2b13a' }];
+export const CASTLE = { x: 204, z: -11.5, w: 18, d: 6, h: 6.5 };
+export const KFOUNTAIN = { x: 204, z: 6, r: 2 };
+
+export type Collider = { t: 'c'; x: number; z: number; r: number } | { t: 'b'; x1: number; x2: number; z1: number; z2: number; gate?: boolean; region?: number };
 
 function rngMaker(seed: number) {
   let s = seed | 0;
@@ -96,7 +137,52 @@ export function buildWorld() {
   for (let i = 0; i < 300 && rocks.length < 18; i++) { const x = -34 + rng() * 78, z = -22 + rng() * 44; if (!blocked(x, z, 0.5) && !inPen(x, z)) { rocks.push({ x, z, s: 0.4 + rng() * 0.6, c: 0 }); colliders.push({ t: 'c', x, z, r: 0.35 + rng() * 0.2 }); } }
   for (let i = 0; i < 400 && bushes.length < 26; i++) { const x = -34 + rng() * 78, z = -22 + rng() * 44; if (!blocked(x, z, 0.5) && !inPen(x, z)) { bushes.push({ x, z, s: 0.7 + rng() * 0.6, c: Math.floor(rng() * 2) }); colliders.push({ t: 'c', x, z, r: 0.55 }); } }
 
+  buildIslands(colliders, trees, flowers, tufts, rocks, bushes);
   return { colliders, trees, flowers, tufts, rocks, bushes };
+}
+function buildIslands(colliders: Collider[], trees: Tree[], flowers: Deco[], tufts: Deco[], rocks: Deco[], bushes: Deco[]) {
+  const box = (x1: number, x2: number, z1: number, z2: number) => colliders.push({ t: 'b', x1, x2, z1, z2 });
+  const circ = (x: number, z: number, r: number) => colliders.push({ t: 'c', x, z, r });
+  ISLAND_HOUSES.forEach((h) => colliders.push(houseBox(h)));
+  circ(CLOCK_TOWER.x, CLOCK_TOWER.z, 1.3); circ(CAMPFIRE.x, CAMPFIRE.z, 0.9); circ(BIG_TREE.x, BIG_TREE.z, 1.6); circ(LIGHTHOUSE.x, LIGHTHOUSE.z, 2); circ(KFOUNTAIN.x, KFOUNTAIN.z, KFOUNTAIN.r + 0.1);
+  for (let k = 0; k < STONES.n; k++) { const a = (k / STONES.n) * Math.PI * 2; circ(STONES.x + Math.cos(a) * STONES.r, STONES.z + Math.sin(a) * STONES.r, 0.55); }
+  CRATES.forEach(([x, z]) => circ(x, z, 0.75));
+  BOATS.forEach((b) => circ(b.x, b.z, 1.6));
+  box(CASTLE.x - CASTLE.w / 2 - 0.4, CASTLE.x + CASTLE.w / 2 + 0.4, CASTLE.z - CASTLE.d / 2 - 0.4, CASTLE.z + CASTLE.d / 2 + 0.4);
+  box(166.5, 170.5, 6.2, 7.8); // fish stall
+  // gates on the bridges (closed until the previous boss + word mastery open the region)
+  BRIDGES.forEach((b) => colliders.push({ t: 'b', x1: b.x1 + 0.7, x2: b.x1 + 1.3, z1: -2.6, z2: 2.6, region: b.r }));
+  const npcs = Object.values(NPCS as Record<string, { x: number; z: number }>);
+  const solid = [...ISLAND_HOUSES.map((h) => [h.x - h.w / 2 - 1.2, h.x + h.w / 2 + 1.2, h.z - h.d / 2 - 1.2, h.z + h.d / 2 + 1.2]), [CASTLE.x - 10, CASTLE.x + 10, CASTLE.z - 4.5, CASTLE.z + 4.5], [SCHOOL_FIELD.x1, SCHOOL_FIELD.x2, SCHOOL_FIELD.z1, SCHOOL_FIELD.z2]];
+  const blocked = (x: number, z: number) => {
+    if (Math.abs(z) < 2.8) return true;
+    if (Math.hypot(x - STONES.x, z - STONES.z) < STONES.r + 1.4) return true;
+    if (Math.hypot(x - KFOUNTAIN.x, z - KFOUNTAIN.z) < 4 || Math.hypot(x - CAMPFIRE.x, z - CAMPFIRE.z) < 3 || Math.hypot(x - BIG_TREE.x, z - BIG_TREE.z) < 3.4) return true;
+    if (x > 165 && x < 175 && z > 5 && z < 9) return true;
+    for (const n of npcs) if (Math.hypot(x - n.x, z - n.z) < 3.2) return true;
+    for (const c of solid) if (x > c[0] && x < c[1] && z > c[2] && z < c[3]) return true;
+    if (x > 144 && x < 176 && z > 13) return true; // harbour front stays open
+    if (Math.abs(x - 204) < 2.6 && z < 0 && z > -8) return true; // carpet
+    return false;
+  };
+  const edge = (i: Island, x: number, z: number) => Math.min(x - i.x1, i.x2 - x, z - i.z1, i.z2 - z);
+  for (const i of ISLANDS) {
+    const want = i.r === 4 ? 78 : i.r === 3 ? 22 : i.r === 5 ? 9 : 24;
+    let placed = 0;
+    for (let t = 0; t < 900 && placed < want; t++) {
+      const x = i.x1 + 1 + rng() * (i.x2 - i.x1 - 2), z = i.z1 + 1 + rng() * (i.z2 - i.z1 - 2);
+      if (blocked(x, z)) continue;
+      if (i.r !== 4 && edge(i, x, z) > 4.5 && rng() < 0.75) continue; // calm islands keep trees near the rim
+      const k = rng();
+      trees.push({ x, z, s: i.r === 4 ? 1 + rng() * 0.8 : 0.8 + rng() * 0.6, kind: i.r === 4 ? (k < 0.82 ? 'pine' : 'round') : i.r === 5 ? 'round' : k < 0.5 ? 'round' : i.r === 6 ? 'orange' : 'pine', tint: rng() });
+      colliders.push({ t: 'c', x, z, r: 0.5 }); placed++;
+    }
+    const nf = i.r === 6 ? 70 : i.r === 3 ? 40 : i.r === 5 ? 6 : 30;
+    for (let t = 0; t < 600 && flowers.filter((f) => f.x > i.x1 && f.x < i.x2).length < nf; t++) { const x = i.x1 + 0.8 + rng() * (i.x2 - i.x1 - 1.6), z = i.z1 + 0.8 + rng() * (i.z2 - i.z1 - 1.6); if (!blocked(x, z)) flowers.push({ x, z, s: 0.7 + rng() * 0.6, c: Math.floor(rng() * 6) }); }
+    const nt = i.r === 5 ? 80 : 190;
+    for (let t = 0; t < 700 && tufts.filter((f) => f.x > i.x1 && f.x < i.x2).length < nt; t++) { const x = i.x1 + 0.6 + rng() * (i.x2 - i.x1 - 1.2), z = i.z1 + 0.6 + rng() * (i.z2 - i.z1 - 1.2); if (Math.abs(z) > 1.9) tufts.push({ x, z, s: 0.8 + rng() * 0.6, c: Math.floor(rng() * 3) }); }
+    for (let t = 0; t < 200 && rocks.filter((f) => f.x > i.x1 && f.x < i.x2).length < (i.r === 5 ? 9 : 4); t++) { const x = i.x1 + 1.5 + rng() * (i.x2 - i.x1 - 3), z = i.z1 + 1.5 + rng() * (i.z2 - i.z1 - 3); if (!blocked(x, z)) { rocks.push({ x, z, s: 0.4 + rng() * 0.6, c: 0 }); circ(x, z, 0.45); } }
+  }
 }
 export const WORLD = buildWorld();
 
@@ -105,7 +191,7 @@ export const COINS: [number, number][] = [[-26, -4], [-20, 10], [-12, -10], [-8,
 export function hit(x: number, z: number, r: number, gateOpen: boolean) {
   for (const c of WORLD.colliders) {
     if (c.t === 'c') { const dx = x - c.x, dz = z - c.z, rr = r + c.r; if (dx * dx + dz * dz < rr * rr) return true; }
-    else { if (c.gate && gateOpen) continue; if (x > c.x1 - r && x < c.x2 + r && z > c.z1 - r && z < c.z2 + r) return true; }
+    else { if (c.region) { if (regionOpen(c.region)) continue; } else if (c.gate && gateOpen) continue; if (x > c.x1 - r && x < c.x2 + r && z > c.z1 - r && z < c.z2 + r) return true; }
   }
   return false;
 }

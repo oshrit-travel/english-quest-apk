@@ -9,7 +9,7 @@ import { Portrait } from '../ui/kit.tsx';
 
 export function startMission(m: any) {
   const o: any = { title: m.title, mission: m, onDone: (s: any) => missionDone(m, s) };
-  if (m.boss) Object.assign(o, { boss: true, single: true, noHint: true, bossEmoji: m.r === 1 ? '💂' : '🧟' });
+  if (m.boss) Object.assign(o, { boss: true, single: true, noHint: true, bossEmoji: ({ 1: '💂', 2: '🧟', 3: '🧑‍💼', 4: '🦉', 5: '🏴‍☠️', 6: '🐉' } as any)[m.r] || '👹' });
   runQueue(missionQueue(m), o);
 }
 
@@ -24,8 +24,8 @@ export default function Dialog({ id }: { id: string }) {
     const st = missionState(m);
     if (st === 'lock') {
       locked = true;
-      const g = gateInfo();
-      const why = !regionOpen(m.r) ? (g.boss ? `עברת את הקרב, אבל צריך לתרגל עוד מילים: ${g.learned}/${g.need}. תרגלו ונפתח את השער!` : `כדי לפתוח את שער החווה צריך לנצח את שומר השער (לפחות ${Math.round(CFG.passBoss * 100)}%) ולתרגל מילים.`) : m.boss ? 'קודם השלימו את כל המשימות באזור הזה.' : 'קודם השלימו את המשימה הקודמת באזור.';
+      const g = gateInfo(m.r);
+      const why = !regionOpen(m.r) ? (g.boss ? `עברת את הקרב, אבל צריך לתרגל עוד מילים: ${g.learned}/${g.need}. תרגלו ונפתח את השער!` : `כדי להיכנס אל ${REGIONS[m.r - 1].he} צריך לנצח את הבוס של האזור הקודם (לפחות ${Math.round(CFG.passBoss * 100)}%) ולתרגל מילים.`) : m.boss ? 'קודם השלימו את כל המשימות באזור הזה.' : 'קודם השלימו את המשימה הקודמת באזור.';
       lines = [{ t: '🔒 עוד לא', h: why }];
     } else {
       lines = [{ t: '📖 הסיפור', h: m.story }, { t: '🎯 המטרה', h: m.obj }, { t: '🧠 שיעור קצר', h: m.lesson }];

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { NPCS } from './data/content.ts';
 import { S, dayKey, save } from './engine/engine.ts';
+import { checkGate } from './engine/game.ts';
 import { bus } from './engine/bus.ts';
 import { useUI, syncWorldMode } from './engine/ui.ts';
 import { useWorld, player } from './world/store.ts';
@@ -41,6 +42,7 @@ export default function App() {
   const top = stack[stack.length - 1];
 
   useEffect(() => {
+    checkGate(); // an existing save may already qualify for the next region
     const q = S.set.quality; if (q === 'low' || q === 'high') useWorld.getState().setQuality(q);
     const off = [
       bus.on('toast', (m) => ui.getState().toast(m)),

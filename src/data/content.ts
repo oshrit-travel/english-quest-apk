@@ -1,4 +1,5 @@
 // Educational content: kept separate from game mechanics and UI.
+import { NEW_CATS, NEW_VR, NEW_SENT, NEW_TALK, NEW_PIC, NEW_PASS, NEW_WT, NEW_MISSIONS, NEW_NPCS, NEW_PORTRAITS } from './world2.ts';
 /* ===== CONTENT (separate from mechanics) ===== */
 export const CFG={
   xp:{mission:30,challenge:50,region:150,correct:2,streakEvery:5,streakBonus:5,boss:60},
@@ -244,3 +245,16 @@ hat:[['none','בלי',null,0],['cap','כובע מצחייה','#ef4444',25],['par
 pack:[['none','בלי',null,0],['red','תיק אדום','#dc2626',20],['green','תיק ירוק','#16a34a',20],['gold','תיק זהב','#eab308',70]],
 pet:[['none','בלי',null,0],['dog','כלבלב','#b9824f',40],['cat','חתלתול','#8b8b8b',40],['chick','אפרוח','#fde047',30]]
 };
+
+/* ===== regions 3-6 (content lives in world2.ts) ===== */
+Object.assign(CATS, NEW_CATS);
+NEW_VR.forEach((r) => { const v = { id: r[0], en: r[1], he: r[2], e: r[3], cat: r[4] }; VOC.push(v); VM[v.id] = v; });
+SENT.push(...NEW_SENT); TALK.push(...NEW_TALK); PIC.push(...NEW_PIC);
+Object.assign(PASS, NEW_PASS); Object.assign(WT, NEW_WT); Object.assign(NPCS, NEW_NPCS);
+REGIONS.forEach((r) => { delete r.lock; });
+MISSIONS.push(...NEW_MISSIONS);
+export const PORTRAITS = NEW_PORTRAITS;
+/** vocabulary categories belonging to each region (used to keep exams/practice to what the child has reached) */
+export const REGION_CATS = { 3: ['school'], 4: ['forest'], 5: ['sea'], 6: ['kingdom'] };
+/** previous-region boss that must be beaten, and how many words must be genuinely learned, to enter region r */
+export const GATES = { 2: { boss: 'v6', need: 12 }, 3: { boss: 'f7', need: 20 }, 4: { boss: 's6', need: 30 }, 5: { boss: 'h6', need: 40 }, 6: { boss: 'w6', need: 50 } };

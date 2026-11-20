@@ -1,26 +1,32 @@
 // @ts-nocheck  (game rules ported from the validated v1 build; UI-free)
-import { CFG, CATS, VM, MISSIONS, WT, PASS } from '../data/content.ts';
+import { CFG, CATS, VM, MISSIONS, WT, PASS, REGIONS, GATES } from '../data/content.ts';
 import { ACH } from '../data/achievements.ts';
 import { S, addReward, gateInfo, mDone, buildQueue, bossSpecs, mkWrite, skillBuckets, dueIds, currentMission, save, dayKey, pick, sample, shuffle, uniq, readiness, status, learnedCount } from './engine.ts';
 import { toast } from './bus.ts';
 
 export function checkAch() {
+  checkGate();
   ACH.forEach((a) => { if (!S.ach.includes(a[0]) && a[3](S)) { S.ach.push(a[0]); addReward(0, a[4]); toast('🏆 הישג חדש: ' + a[1] + ' (+' + a[4] + ' 🪙)'); } });
   save();
 }
 
-/** Opens the farm gate when the guard battle is won AND words are genuinely mastered (not XP). */
+/** Opens a region gate when the previous boss is beaten AND enough words are genuinely mastered (not XP). */
 export function checkGate(): boolean {
-  if (!S.flags.farmOpen && gateInfo().ok) {
-    S.flags.farmOpen = true; addReward(CFG.xp.region, CFG.coins.boss);
-    toast('🚪 השער נפתח! חוות החיות מחכה לכם (+' + CFG.xp.region + ' XP)'); save(); return true;
+  let any = false;
+  for (const r of [2, 3, 4, 5, 6]) {
+    const key = r === 2 ? 'farmOpen' : 'openR' + r;
+    if (!S.flags[key] && gateInfo(r).ok) {
+      S.flags[key] = true; any = true; addReward(CFG.xp.region, CFG.coins.boss);
+      toast('🚪 השער נפתח! ' + REGIONS[r - 1].he + ' מחכה לכם (+' + CFG.xp.region + ' XP)');
+    }
   }
-  return false;
+  if (any) save();
+  return any;
 }
 
 export function bossQueue(m) {
   let q = buildQueue(bossSpecs(m.r)).filter((x) => x.kind !== 'memory' && x.kind !== 'search');
-  q = shuffle(q).slice(0, 9); q.push(mkWrite(m.r === 1 ? 'w_pen' : 'w_farmer')); return q;
+  q = shuffle(q).slice(0, 9); q.push(mkWrite(m.chal || (m.r === 1 ? 'w_pen' : 'w_farmer'))); return q;
 }
 export const missionQueue = (m) => (m.boss ? bossQueue(m) : [...buildQueue(m.steps), mkWrite(m.chal)]);
 
@@ -35,8 +41,16 @@ export function missionDone(m, s): string[] {
     if (!S.inv.some((i) => i.id === m.id)) S.inv.push({ id: m.id, e: m.item, n: m.itemName });
     lines.push(`🎉 משימה הושלמה! +${CFG.xp.mission + bx} XP${ch ? ` · אתגר כתיבה +${ch} XP` : ''} · +${m.boss ? CFG.coins.boss : CFG.coins.mission} 🪙`, `פריט אספנות חדש: ${m.item} ${m.itemName}`);
   } else lines.push('✅ עברתם שוב! (תגמול ניתן בהשלמה הראשונה)');
-  if (m.id === 'v6') { const g = gateInfo(); if (g.ok) { checkGate(); lines.push('🚪 השער נפתח! עכשיו אפשר להיכנס לחוות החיות.'); } else lines.push(`עברתם את הקרב! כדי לפתוח את השער צריך להוכיח שליטה בעוד מילים: ${g.learned}/${g.need}. תרגלו (משימת היום / תרגול) והשער ייפתח.`); }
-  if (m.id === 'f7' && first) { addReward(CFG.xp.region, CFG.coins.boss); lines.push(`🏆 סיימתם את חוות החיות! +${CFG.xp.region} XP`); }
+  if (m.boss) {
+    const nr = m.r + 1;
+    if (nr <= 6 && GATES[nr]) {
+      const g = gateInfo(nr);
+      if (g.ok) { checkGate(); lines.push(`🚪 השער נפתח! עכשיו אפשר להיכנס אל ${REGIONS[nr - 1].he}.`); }
+      else lines.push(`עברתם את הקרב! כדי לפתוח את השער צריך להוכיח שליטה בעוד מילים: ${g.learned}/${g.need}. תרגלו (משימת היום / תרגול) והשער ייפתח.`);
+    }
+    if (first && m.r >= 2) { addReward(CFG.xp.region, CFG.coins.boss); lines.push(`🏆 סיימתם את ${REGIONS[m.r - 1].he}! +${CFG.xp.region} XP`); }
+    if (first && m.r === 6) lines.push('👑 סיימתם את כל ההרפתקה! אתם מאסטרים של האי האנגלי!');
+  }
   save(); return lines;
 }
 

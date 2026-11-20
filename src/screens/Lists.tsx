@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CATS, TOPICS, VOC, VM, PASS, WT, CFG } from '../data/content.ts';
 import { ACH } from '../data/achievements.ts';
-import { S, save, STATUS, status, skillAcc, weakQueue, dueIds, skillBuckets, examQueue, buildQueue, pick, sample, dayKey, say } from '../engine/engine.ts';
+import { S, save, openCats, STATUS, status, skillAcc, weakQueue, dueIds, skillBuckets, examQueue, buildQueue, pick, sample, dayKey, say } from '../engine/engine.ts';
 import { dailyPlan, dailyDone, examDone } from '../engine/game.ts';
 import { useGame } from '../engine/useGame.ts';
 import { useUI } from '../engine/ui.ts';
@@ -41,7 +41,7 @@ export function Practice() {
         <button className="btn btn-green btn-sm" onClick={weakest}>📉 המיומנות החלשה שלי</button>
         <button className="btn btn-teal btn-sm" onClick={() => { if (!due.length) { ui.toast('אין כרגע מילים לחזרה 🎉'); return; } run([{ m: 'hunter', ids: sample(due.map((x) => x.slice(2)), Math.min(8, due.length)), n: 8 }], 'חזרה'); }}>⏰ מילים לחזרה ({due.length})</button></div></Card>
       <Card title="קושי"><div className="flex flex-wrap gap-2">{[['auto', 'אוטומטי'], ['0', 'קל'], ['1', 'בינוני'], ['2', 'מאתגר']].map(([v, t]) => <Chip key={v} on={diff === v} onClick={() => setD(v)}>{t}</Chip>)}</div></Card>
-      <Card title="נושא (אוצר מילים ומשחקי זיכרון)"><div className="flex flex-wrap gap-2">{Object.entries(CATS).map(([k, t]) => <Chip key={k} on={cat === k} onClick={() => setCat(k)}>{t as string}</Chip>)}</div></Card>
+      <Card title="נושא (אוצר מילים ומשחקי זיכרון)"><div className="flex flex-wrap gap-2">{Object.entries(CATS).filter(([k]) => openCats().includes(k)).map(([k, t]) => <Chip key={k} on={cat === k} onClick={() => setCat(k)}>{t as string}</Chip>)}</div></Card>
       <h3 className="mt-4 text-lg font-extrabold text-white">משחקים</h3>
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{MODES.map((m) => <Tile key={m[0]} icon={m[2]} label={m[1]} sub={m[3]} onClick={() => mode(m[0], m[1])} />)}</div>
       <p className="mt-3 text-sm text-white/70">⚔️ קרב הבוס מחכה לכם בעולם – בסוף כל אזור.</p>
@@ -59,7 +59,7 @@ export function School() {
       <h3 className="mt-3 text-lg font-extrabold text-white">דקדוק</h3>
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{Object.entries(TOPICS).map(([k, t]) => <Tile key={k} icon="📐" label={t as string} onClick={() => gram(k)} />)}</div>
       <h3 className="mt-4 text-lg font-extrabold text-white">רשימות מילים</h3>
-      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{[['animals', '🐑'], ['colors', '🎨'], ['numbers', '🔢'], ['family', '👪'], ['food', '🍎'], ['objects', '📚'], ['verbs', '🏃'], ['adjectives', '🌺']].map(([k, e]) => <Tile key={k} icon={e} label={(CATS as any)[k]} sub={`${VOC.filter((v: any) => v.cat === k).length} מילים`} onClick={() => voc(k)} />)}</div>
+      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">{[['animals', '🐑'], ['colors', '🎨'], ['numbers', '🔢'], ['family', '👪'], ['food', '🍎'], ['objects', '📚'], ['verbs', '🏃'], ['adjectives', '🌺'], ['school', '🏫'], ['forest', '🌲'], ['sea', '🌊'], ['kingdom', '🏰']].filter(([k]) => openCats().includes(k)).map(([k, e]) => <Tile key={k} icon={e} label={(CATS as any)[k]} sub={`${VOC.filter((v: any) => v.cat === k).length} מילים`} onClick={() => voc(k)} />)}</div>
       <h3 className="mt-4 text-lg font-extrabold text-white">קריאה</h3>
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">{Object.entries(PASS).map(([k, p]: any) => <Tile key={k} icon="📖" label={p.title} sub={p.he} onClick={() => rd(k)} />)}</div>
       <h3 className="mt-4 text-lg font-extrabold text-white">עוד</h3>
@@ -90,7 +90,7 @@ export function Vocab() {
   return (
     <Page title="📚 אוצר מילים">
       <Card className="text-sm text-[#6b4a2b]">לחצו על מילה כדי לשמוע. הסטטוס משקף שליטה אמיתית: חדש ← לומד ← מתרגל ← נלמד ← שולט (דורש הצלחות חוזרות בימים שונים ובכמה סוגי תרגילים).</Card>
-      {Object.entries(CATS).map(([k, t]) => (
+      {Object.entries(CATS).filter(([k]) => openCats().includes(k)).map(([k, t]) => (
         <Card key={k} title={t as string}>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{VOC.filter((v: any) => v.cat === k).map((v: any) => { const m = g.mastery['v:' + v.id], due = m && m.reps && m.next <= Date.now(); return (
             <motion.button whileTap={{ scale: 0.94 }} key={v.id} onClick={() => say(v.en)} className="rounded-2xl border-2 border-[#e4c88e] bg-white/70 p-2 text-center">

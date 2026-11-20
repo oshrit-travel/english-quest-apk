@@ -10,7 +10,8 @@ import { useGame } from '../engine/useGame.ts';
 import { Humanoid, Pet, skinFor, type Look } from './Character.tsx';
 import { Sheep, Horse, Cow, Chicken, Rabbit, Duck, Birds, Butterflies } from './Animals.tsx';
 import { Ground, Forest, Meadow, Houses, Fences, Gate, Lamps, Fountain, Well, Stalls, Hay, Crops, Windmill, Pond, CloudShadows, Tag } from './Props.tsx';
-import { BOUND, COINS, PENS, POND, hit } from './layout.ts';
+import { BOUND, COINS, PENS, POND, hit, walkable, LAND_MAX_X } from './layout.ts';
+import { Islands, BridgeGates } from './Islands.tsx';
 import { input, player, useWorld } from './store.ts';
 
 const RT = Math.SQRT1_2;
@@ -20,7 +21,7 @@ const shopColor = (k: keyof typeof SHOP, id: string): string | null => ((SHOP[k]
 const StaticWorld = memo(function StaticWorld() {
   return (
     <>
-      <Ground /><Houses /><Fences /><Forest /><Meadow /><Lamps /><Fountain /><Well /><Stalls /><Hay /><Crops /><Windmill /><Pond />
+      <Ground /><Islands /><Houses /><Fences /><Forest /><Meadow /><Lamps /><Fountain /><Well /><Stalls /><Hay /><Crops /><Windmill /><Pond />
       <CloudShadows /><Birds /><Butterflies />
       {[[15.5, 15], [17.5, 17.5], [19.5, 15.5], [20, 18.5]].map((p, i) => <Sheep key={'s' + i} bounds={PENS.sheep as any} start={p as any} />)}
       <Horse bounds={PENS.horses as any} start={[29, 16]} /><Horse bounds={PENS.horses as any} start={[33, 18]} coat="#f2ede4" mane="#b9a98c" />
@@ -37,7 +38,11 @@ const NPC_LOOK: Record<string, { hair: Look['hairStyle']; skin: number; hat?: st
   dana: { hair: 'long', skin: 0 }, yuval: { hair: 'short', skin: 1, accent: '#fff' }, mira: { hair: 'bun', skin: 3 }, sami: { hair: 'spiky', skin: 2 },
   ruth: { hair: 'bob', skin: 0 }, guard: { hair: 'short', skin: 1, hat: 'cap', pants: '#59616b' }, gil: { hair: 'short', skin: 2, hat: 'straw', pants: '#6b5a3a' },
   tali: { hair: 'long', skin: 3 }, omer: { hair: 'spiky', skin: 1, hat: 'straw' }, avi: { hair: 'short', skin: 4 }, dalia: { hair: 'bob', skin: 0 },
-  kids: { hair: 'spiky', skin: 3 }, oldgil: { hair: 'short', skin: 1, hat: 'straw', pants: '#7a5a2a', accent: '#c0392b' },
+  kids: { hair: 'spiky', skin: 3 },
+  noa: { hair: 'long', skin: 1 }, liat: { hair: 'bun', skin: 3, accent: '#fff' }, rami: { hair: 'short', skin: 2, hat: 'cap' }, nofar: { hair: 'long', skin: 0 }, tomer: { hair: 'short', skin: 4 }, principal: { hair: 'short', skin: 0, pants: '#2f3b55' },
+  hila: { hair: 'long', skin: 3 }, ofir: { hair: 'spiky', skin: 1, hat: 'wizard' }, shai: { hair: 'short', skin: 2, hat: 'cap' }, yarden: { hair: 'bob', skin: 0 }, dror: { hair: 'short', skin: 4, hat: 'straw' }, owl: { hair: 'short', skin: 2, hat: 'wizard', accent: '#c9a070' },
+  ran: { hair: 'short', skin: 1, hat: 'cap', pants: '#1f2f55' }, dvora: { hair: 'bob', skin: 3, hat: 'straw' }, yoav: { hair: 'spiky', skin: 2 }, maya: { hair: 'long', skin: 0 }, tamir: { hair: 'short', skin: 1, hat: 'cap' }, pirate: { hair: 'short', skin: 2, hat: 'cap', pants: '#3a1f1f', accent: '#111' },
+  ido: { hair: 'short', skin: 1, hat: 'cap', pants: '#59616b' }, shira: { hair: 'long', skin: 3 }, alon: { hair: 'short', skin: 0, hat: 'wizard' }, queen: { hair: 'long', skin: 1, hat: 'crown' }, king: { hair: 'short', skin: 2, hat: 'crown', pants: '#7a1f2a' }, dragon: { hair: 'spiky', skin: 3, accent: '#2a7a3a' }, oldgil: { hair: 'short', skin: 1, hat: 'straw', pants: '#7a5a2a', accent: '#c0392b' },
 };
 
 function Npc({ id }: { id: string }) {
@@ -119,8 +124,8 @@ function Player() {
     if (mode === 'play' && mag > 0.08) {
       const wx = ix * RT - iy * RT, wz = -ix * RT - iy * RT, spd = 2.4 + mag * 4.2, open = !!S.flags.farmOpen;
       const nx = player.x + wx * spd * dt, nz = player.z + wz * spd * dt;
-      if (!hit(nx, player.z, 0.45, open) && nx > BOUND.x1 && nx < BOUND.x2) player.x = nx;
-      if (!hit(player.x, nz, 0.45, open) && nz > BOUND.z1 && nz < BOUND.z2) player.z = nz;
+      if (!hit(nx, player.z, 0.45, open) && walkable(nx, player.z)) player.x = nx;
+      if (!hit(player.x, nz, 0.45, open) && walkable(player.x, nz)) player.z = nz;
       const ta = Math.atan2(wx, wz); let da = ta - player.a; while (da > Math.PI) da -= 6.283; while (da < -Math.PI) da += 6.283; player.a += da * Math.min(1, dt * 14);
       player.v = spd;
     } else player.v = Math.max(0, player.v - dt * 30);
@@ -165,7 +170,7 @@ function Rig() {
     if (mode === 'menu') { const k = portrait ? 3.8 : 3.3; if (portrait) { ox = k * RT; oz = k * RT; } else { ox = k * RT; oz = -k * RT; } zm = 1.3; }
     const base = Math.max(24, Math.min(80, Math.min(size.width, size.height) / (portrait ? 13 : 15)));
     const T = tgt.current, k = Math.min(1, dt * (mode === 'play' ? 6 : 2.5));
-    const px = Math.max(-31, Math.min(41, player.x)), pz = Math.max(-17, Math.min(17, player.z));
+    const px = Math.max(-31, Math.min(LAND_MAX_X - 8, player.x)), pz = Math.max(-17, Math.min(player.x > 150 && player.x < 170 ? 21 : 17, player.z));
     T.x += (px + ox - T.x) * k; T.z += (pz + oz - T.z) * k; T.zoom += (base * zm * zoom - T.zoom) * Math.min(1, dt * 3);
     const c = cam.current; c.position.set(T.x + 14, 16, T.z + 14); c.lookAt(T.x, 0, T.z); c.zoom = T.zoom; c.updateProjectionMatrix();
     sun.current.position.set(T.x - 22, 36, T.z + 16); aim.position.set(T.x, 0, T.z); aim.updateMatrixWorld();
@@ -208,7 +213,7 @@ function World() {
     <>
       <Rig /><Interact />
       <StaticWorld />
-      <Gate open={!!g.flags.farmOpen} />
+      <Gate open={!!g.flags.farmOpen} /><BridgeGates />
       {Object.keys(NPCS as object).map((id) => <Npc key={id} id={id} />)}
       <Coins /><Player />
     </>

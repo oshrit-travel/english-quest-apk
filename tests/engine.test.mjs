@@ -35,3 +35,14 @@ test('game layer: daily plan builds, missions complete, gate opens only with mas
   assert.equal(Gm.checkGate(),true);assert.ok(E.regionOpen(2));
   assert.ok(Gm.parentStats().rec.length>0);
 });
+
+test('regions 3-6: content is complete and consistent',()=>{
+  for(const r of [3,4,5,6]){const ms=C.MISSIONS.filter(m=>m.r===r);assert.equal(ms.length,6,'6 missions in region '+r);assert.ok(ms[5].boss,'boss last in '+r);
+    for(const m of ms){assert.ok(C.NPCS[m.npc],'npc '+m.npc);assert.ok(C.WT[m.chal]||m.boss,'WT '+m.id);if(!m.boss){const q=E.buildQueue(m.steps);assert.ok(q.length>=8,m.id+' has '+q.length+' questions');q.forEach(x=>chk(x,m.id))}else assert.ok(E.buildQueue(E.bossSpecs(r)).length>=8,'boss '+r)}}
+  for(const k in C.PASS)C.PASS[k].qs.forEach(q=>{assert.ok(q[3]>=0&&q[3]<C.PASS[k].s.length,'evidence index '+k+' '+q[0])});
+  for(const w in C.WT){const t=C.WT[w];assert.ok(t.must.every(m=>{try{new RegExp(m[0]);return true}catch{return false}}),'regex '+w)}
+  const ids=C.VOC.map(v=>v.id);assert.equal(new Set(ids).size,ids.length,'duplicate vocab ids');
+  const em=C.VOC.filter(v=>!['verbs','adjectives'].includes(v.cat)).map(v=>v.e);assert.equal(new Set(em).size,em.length,'duplicate emoji among picture words: '+em.filter((e,i)=>em.indexOf(e)!==i));
+  for(const n in C.NPCS)assert.ok(C.NPCS[n].n&&C.NPCS[n].x!=null,'npc '+n);
+});
+test('region gates open in order',()=>{const g=E.gateInfo(3);assert.equal(g.need,20);assert.equal(E.regionOpen(3),false);E.S.flags.openR3=true;assert.equal(E.regionOpen(3),true);E.S.flags.openR3=false});

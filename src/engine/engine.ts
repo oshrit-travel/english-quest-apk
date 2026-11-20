@@ -1,5 +1,5 @@
 // @ts-nocheck  (ported generator/engine code; the UI layer is typed)
-import { CFG, CATS, VOC, VM, SENT, CC, FX, TALK, PIC, ADJ, VD, WH, PREP, CONJ, TOPICS, PASS, INSTR, WT, MISSIONS, REGIONS, SHOP } from '../data/content.ts';
+import { CFG, CATS, VOC, VM, SENT, CC, FX, TALK, PIC, ADJ, VD, WH, PREP, CONJ, TOPICS, PASS, INSTR, WT, MISSIONS, REGIONS, SHOP, GATES, REGION_CATS } from '../data/content.ts';
 import { bus, toast, bump } from './bus.ts';
 /* ===== ENGINE: utils, state, mastery, speech, question generators (no rendering code) ===== */
 export const rnd=n=>Math.floor(Math.random()*n);
@@ -225,8 +225,8 @@ export function expand(sp){
   case'cancant':{const d=diff('grammar');return sample(CC.map((c,i)=>i),n).map((i,k)=>mkCC(CC[i],k%2?'build':'mcq',d,i))}
   case'grammar':{const d=diff('grammar'),t=sp.topics||Object.keys(G);return Array.from({length:n},(_,i)=>G[t[i%t.length]](d))}
   case'reading':{const P=PASS[sp.pid],d=diff('reading');return sample(P.qs.map((_,i)=>i),Math.min(n,P.qs.length)).map(i=>mkRead(sp.pid,i,false,d))}
-  case'talk':{const d=diff('speaking');return prio(TALK.map((_,i)=>i),i=>'d:'+i).slice(0,n).map(i=>mkTalk(i,d))}
-  case'picture':{const d=diff('writing');return sample(PIC.map((_,i)=>i),n).map(i=>mkPic(i,d))}
+  case'talk':{const d=diff('speaking');return prio(TALK.map((_,i)=>i).filter(i=>(TALK[i][4]||0)===(sp.r||0)),i=>'d:'+i).slice(0,n).map(i=>mkTalk(i,d))}
+  case'picture':{const d=diff('writing');return sample(PIC.map((_,i)=>i).filter(i=>(PIC[i].r||0)===(sp.r||0)),n).map(i=>mkPic(i,d))}
   case'fix':{const d=diff('grammar');return prio(FX.map((_,i)=>i),i=>'f:'+i).slice(0,n).map(i=>mkFix(i,d))}
   case'wordquest':return[mkSearch(sp.cat||'animals',diff('vocabulary'))];
   case'writing':return(sp.ids||[]).map(mkWrite);
@@ -235,14 +235,19 @@ export function expand(sp){
 export const buildQueue=specs=>specs.flatMap(expand);
 
 /* boss pools */
-export function bossSpecs(r){return r===1
- ?[{m:'hunter',cats:['animals','colors','numbers','family','food','objects'],n:4},{m:'listen',kind:'word',cats:['animals','colors','food'],n:2},{m:'grammar',topics:['havehas'],n:2},{m:'builder',r:1,n:2},{m:'talk',n:1}]
- :[{m:'grammar',topics:['can','pcont','psimple','pspc'],n:4},{m:'grammar',topics:['adj','vdiff'],n:2},{m:'cancant',n:1},{m:'reading',pid:'p1',n:2},{m:'fix',n:1}]}
+export function bossSpecs(r){
+ if(r===1)return[{m:'hunter',cats:['animals','colors','numbers','family','food','objects'],n:4},{m:'listen',kind:'word',cats:['animals','colors','food'],n:2},{m:'grammar',topics:['havehas'],n:2},{m:'builder',r:1,n:2},{m:'talk',n:1}];
+ if(r===3)return[{m:'hunter',cats:['school','food','colors'],n:4},{m:'grammar',topics:['dodoes','pcont','havehas','adj'],n:4},{m:'builder',r:3,n:2},{m:'reading',pid:'p4',n:2},{m:'talk',r:3,n:1}];
+ if(r===4)return[{m:'hunter',cats:['forest','animals'],n:4},{m:'grammar',topics:['wh','prep','can','psimple'],n:4},{m:'builder',r:4,n:2},{m:'reading',pid:'p5',n:2},{m:'talk',r:4,n:1}];
+ if(r===5)return[{m:'hunter',cats:['sea','animals'],n:4},{m:'grammar',topics:['pspc','conj','dodoes','can'],n:4},{m:'builder',r:5,n:2},{m:'reading',pid:'p6',n:2},{m:'talk',r:5,n:1}];
+ if(r===6)return[{m:'hunter',cats:['kingdom','school','forest','sea'],n:4},{m:'grammar',topics:['pcont','psimple','havehas','wh','prep','conj','dodoes'],n:5},{m:'fix',n:2},{m:'builder',r:6,n:2},{m:'reading',pid:'p7',n:2}];
+ return[{m:'grammar',topics:['can','pcont','psimple','pspc'],n:4},{m:'grammar',topics:['adj','vdiff'],n:2},{m:'cancant',n:1},{m:'reading',pid:'p1',n:2},{m:'fix',n:1}]}
 
 /* exam: n questions from configurable duration; no repeats of exact items inside one exam */
+export function openCats(){const base=['animals','colors','numbers','family','food','objects','verbs','adjectives'];for(const r of [3,4,5,6])if(regionOpen(r))base.push(...REGION_CATS[r]);return base}
 export function examQueue(min){
   const n=min<=5?8:min<=10?14:20,pass=pick(['p1','p2','p3']),w=Math.max(1,Math.round(n*.2));
-  const spec=[{m:'hunter',cats:Object.keys(CATS),n:Math.round(n*.2)},{m:'grammar',topics:['pcont','psimple','neg','dodoes','havehas','can','pspc','wh','prep','conj'],n:Math.round(n*.35)},{m:'reading',pid:pass,n:Math.max(2,Math.round(n*.2))},{m:'listen',kind:'sent',n:Math.max(1,Math.round(n*.1))},{m:'fix',n:1}];
+  const spec=[{m:'hunter',cats:openCats(),n:Math.round(n*.2)},{m:'grammar',topics:['pcont','psimple','neg','dodoes','havehas','can','pspc','wh','prep','conj'],n:Math.round(n*.35)},{m:'reading',pid:pass,n:Math.max(2,Math.round(n*.2))},{m:'listen',kind:'sent',n:Math.max(1,Math.round(n*.1))},{m:'fix',n:1}];
   const q=buildQueue(spec).filter(x=>x.kind!=='memory');q.push(mkWrite(pick(['w_intro','w_daily','w_family','w_ican'])));
   q.forEach(x=>x.exam=true);return q;
 }
@@ -274,7 +279,7 @@ export function weakQueue(n){
 
 /* mission availability / unlocking: by demonstrated performance, not XP */
 export const mDone=id=>!!(S.missions[id]&&S.missions[id].done);
-export function regionOpen(r){return r===1||(r===2&&!!S.flags.farmOpen)}
+export function regionOpen(r){return r===1||(r===2?!!S.flags.farmOpen:!!S.flags['openR'+r])}
 export function missionState(m){
   if(!regionOpen(m.r))return'lock';
   if(mDone(m.id))return'done';
@@ -283,7 +288,7 @@ export function missionState(m){
   const i=reg.indexOf(m);return(i===0||mDone(reg[i-1].id))?'open':'lock';
 }
 export function gateCount(){return Object.keys(S.mastery).filter(k=>k.startsWith('v:')&&S.mastery[k].step>=2).length}
-export function gateInfo(){const b=mDone('v6'),l=gateCount();return{boss:b,learned:l,need:CFG.minLearnedForGate,ok:b&&l>=CFG.minLearnedForGate}}
+export function gateInfo(r=2){const g=GATES[r]||GATES[2],b=mDone(g.boss),l=gateCount();return{r,boss:b,learned:l,need:g.need,ok:b&&l>=g.need}}
 export function currentMission(){return MISSIONS.find(m=>missionState(m)==='open')||null}
 
 /* analytics for parent dashboard */
